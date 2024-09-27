@@ -1,33 +1,37 @@
+const path = require('path');
 const express = require('express');
-const {buildSchema} = require('graphql'); // Import the buildSchema function from the graphql package, allows use to build schema for our API
-const {graphqlHTTP} = require('express-graphql'); // Import the graphqlHTTP function from the express-graphql package, allows us to use GraphQL with Express
+const { graphqlHTTP } = require('express-graphql'); // Import the graphqlHTTP function from the express-graphql package
+const { makeExecutableSchema } = require('@graphql-tools/schema'); // Import the makeExecutableSchema function
+const { loadFilesSync } = require('@graphql-tools/load-files');
 
+// Load type definitions from .graphql files
+const typesArray = loadFilesSync(path.join(__dirname, './**/*.graphql'));
 
-const schema = buildSchema(`
-  type Query {
-    description: String
-    price: Float
-  }
-`);
+// Create schema using the loaded type definitions
+const schema = makeExecutableSchema({
+  typeDefs: typesArray
+});
 
 const app = express();
 
+// Import model data
+const products = require('./products/products.model');
+const orders = require('./orders/orders.model');
+
+// Define resolvers
 const root = {
-    description: () => {
-        return 'Red T-Shirt';
-    },
-    price: () => {
-        return 5.99;
-    }
+  products: require('./products/products.model'),
+  orders: require('./orders/orders.model'),
 };
 
-
-app.use('/graphql',graphqlHTTP({
+// Set up GraphQL endpoint
+app.use('/graphql', graphqlHTTP({
   schema: schema,
   rootValue: root,
   graphiql: true
 }));
 
+// Start the server
 app.listen(3000, () => {
-  console.log('Running our GrapphQL API Server at http://localhost:3000/graphql');
+  console.log('Running our GraphQL API Server at http://localhost:3000/graphql');
 });
